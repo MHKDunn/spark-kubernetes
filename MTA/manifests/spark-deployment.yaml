@@ -1,0 +1,28 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: spark
+  #namespace: spark-and-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark
+  template:
+    metadata:
+      labels:
+        app: spark
+    spec:
+      containers:
+        - name: spark
+          image: mattdunn022/spark-kubernetes:latest
+          imagePullPolicy: "Always"
+          #command: ["/bin/bash", "-c", "while true; do echo 1; sleep 1; done"]
+          ports:
+            - containerPort: 7077
+            - containerPort: 8080
+        - name: kube-proxy-sidecar
+          image: bitnami/kubectl
+          command: ["kubectl", "proxy"]
+          ports:
+            - containerPort: 8001

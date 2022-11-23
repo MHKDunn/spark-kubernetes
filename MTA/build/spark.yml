@@ -1,0 +1,246 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spark
+  labels:
+    name: spark
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark
+  namespace: spark
+  labels:
+    app: spark
+    type: local
+spec:
+  selector:
+    matchLabels:
+      app: spark
+  template:
+    metadata:
+      labels:
+        app: spark
+    spec:
+      volumes:
+        - name: data-files
+          persistentVolumeClaim:
+            claimName: spark-pvc
+      containers:
+        - name: spark-master
+          image: mattdunn022/spark-kubernetes:latest
+          imagePullPolicy: "Always"
+          command: ["bash", "-c", "while true; do sleep 1; done"]
+          env:
+          - name: SPARK_WORKLOAD
+            value: master
+          resources:
+            limits:
+              memory: "2Gi"
+              cpu: "250m"
+          ports:
+          - containerPort: 8080
+          - containerPort: 7077
+          volumeMounts:
+            - name: data-files
+              mountPath: /mnt/data-files
+        - name: spark-worker-1
+          image: mattdunn022/spark-kubernetes:latest
+          imagePullPolicy: "Always"
+          command: ["bash", "-c", "while true; do sleep 1; done"]
+          env:
+          - name: SPARK_WORKLOAD
+            value: worker
+          resources:
+            limits:
+              memory: "500Mi"
+              cpu: "250m"
+          ports:
+          - containerPort: 8080
+          - containerPort: 7000
+          volumeMounts:
+            - name: data-files
+              mountPath: /mnt/data-files
+        - name: spark-worker-2
+          image: mattdunn022/spark-kubernetes:latest
+          imagePullPolicy: "Always"
+          command: ["bash", "-c", "while true; do sleep 1; done"]
+          env:
+          - name: SPARK_WORKLOAD
+            value: worker
+          resources:
+            limits:
+              memory: "500Mi"
+              cpu: "250m"
+          ports:
+          - containerPort: 8080
+          - containerPort: 7000
+          volumeMounts:
+            - name: data-files
+              mountPath: /mnt/data-files
+        - name: spark-worker-3
+          image: mattdunn022/spark-kubernetes:latest
+          imagePullPolicy: "Always"
+          command: ["bash", "-c", "while true; do sleep 1; done"]
+          env:
+          - name: SPARK_WORKLOAD
+            value: worker
+          resources:
+            limits:
+              memory: "500Mi"
+              cpu: "250m"
+          ports:
+          - containerPort: 8080
+          - containerPort: 7000
+          volumeMounts:
+            - name: data-files
+              mountPath: /mnt/data-files
+        - name: spark-worker-4
+          image: mattdunn022/spark-kubernetes:latest
+          imagePullPolicy: "Always"
+          command: ["bash", "-c", "while true; do sleep 1; done"]
+          env:
+          - name: SPARK_WORKLOAD
+            value: worker
+          resources:
+            limits:
+              memory: "500Mi"
+              cpu: "250m"
+          ports:
+          - containerPort: 8080
+          - containerPort: 7000
+          volumeMounts:
+            - name: data-files
+              mountPath: /mnt/data-files
+        - name: spark-worker-5
+          image: mattdunn022/spark-kubernetes:latest
+          imagePullPolicy: "Always"
+          command: ["bash", "-c", "while true; do sleep 1; done"]
+          env:
+          - name: SPARK_WORKLOAD
+            value: worker
+          resources:
+            limits:
+              memory: "500Mi"
+              cpu: "250m"
+          ports:
+          - containerPort: 8080
+          - containerPort: 7000
+          volumeMounts:
+            - name: data-files
+              mountPath: /mnt/data-files
+        - name: spark-worker-6
+          image: mattdunn022/spark-kubernetes:latest
+          imagePullPolicy: "Always"
+          command: ["bash", "-c", "while true; do sleep 1; done"]
+          env:
+          - name: SPARK_WORKLOAD
+            value: worker
+          resources:
+            limits:
+              memory: "500Mi"
+              cpu: "250m"
+          ports:
+          - containerPort: 8080
+          - containerPort: 7000
+          volumeMounts:
+            - name: data-files
+              mountPath: /mnt/data-files
+        - name: spark-worker-7
+          image: mattdunn022/spark-kubernetes:latest
+          imagePullPolicy: "Always"
+          command: ["bash", "-c", "while true; do sleep 1; done"]
+          env:
+          - name: SPARK_WORKLOAD
+            value: worker
+          resources:
+            limits:
+              memory: "500Mi"
+              cpu: "250m"
+          ports:
+          - containerPort: 8080
+          - containerPort: 7000
+          volumeMounts:
+            - name: data-files
+              mountPath: /mnt/data-files
+        - name: spark-worker-8
+          image: mattdunn022/spark-kubernetes:latest
+          imagePullPolicy: "Always"
+          command: ["bash", "-c", "while true; do sleep 1; done"]
+          env:
+          - name: SPARK_WORKLOAD
+            value: worker
+          resources:
+            limits:
+              memory: "500Mi"
+              cpu: "250m"
+          ports:
+          - containerPort: 8080
+          - containerPort: 7000
+          volumeMounts:
+            - name: data-files
+              mountPath: /mnt/data-files
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-service
+  namespace: spark
+  labels:
+    app: spark
+    type: local
+spec:
+  type: NodePort
+  selector: 
+    app: spark
+  ports:
+    - name: "9090"
+      port: 9090
+      targetPort: 8080
+      # nodePort: 30090
+    - name: "7077"
+      port: 7077
+      targetPort: 7077
+      # nodePort: 30077
+    - name: "7000"
+      port: 7000
+      targetPort: 7000
+status:
+  loadBalancer: {}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: spark-pvc
+  namespace: spark
+  labels:
+    app: spark
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany  
+  resources:
+    requests:
+      storage:  2Gi 
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: spark-pv
+  namespace: spark
+  labels:
+    app: spark
+    type: local
+spec:
+  storageClassName: manual
+  claimRef:
+    name: spark-pvc
+    namespace: spark 
+  capacity:
+    storage:  2Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/mnt/data-files"
+---
+ 

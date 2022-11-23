@@ -1,0 +1,85 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: spark-eks
+  region: eu-west-2
+  version: "1.23"
+
+availabilityZones: ["eu-west-2a", "eu-west-2b"]
+
+vpc:
+# If you wish to use an existing VPC, please provide the subnet ID, change the availability zones above accordingly
+#  subnets:
+#    private:
+#      us-east-1a: { id: <YOUR_SUBNET_ID> }
+#      us-east-1b: { id: <YOUR_SUBNET_ID> }
+  nat:
+    gateway: HighlyAvailable # other options: Disable, Single (default)
+  clusterEndpoints:
+    publicAccess: true
+    privateAccess: true
+
+#cloudWatch:
+  #clusterLogging:
+    # enable specific types of cluster control plane logs
+    #enableTypes: ["all"]
+    # all supported types: "api", "audit", "authenticator", "controllerManager", "scheduler"
+    # supported special values: "*" and "all"
+
+iam:
+  withOIDC: true
+  serviceAccounts:
+    - metadata:
+        name: cluster-autoscaler
+        namespace: kube-system
+        labels: {aws-usage: "cluster-ops"}
+      attachPolicy: # inline policy can be defined along with `attachPolicyARNs`
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "autoscaling:DescribeAutoScalingGroups"
+              - "autoscaling:DescribeAutoScalingInstances"
+              - "autoscaling:DescribeLaunchConfigurations"
+              - "autoscaling:DescribeTags"
+              - "autoscaling:SetDesiredCapacity"
+              - "autoscaling:TerminateInstanceInAutoScalingGroup"
+              - "ec2:DescribeLaunchTemplateVersions"
+            Resource: '*'
+
+# fargateProfiles:
+#   - name: spark-fargate
+#     selectors:
+#       # All workloads in the "spark-serverless" Kubernetes namespace matching the following
+#       # label selectors will be scheduled onto Fargate:
+#       - namespace: spark-fargate
+#         # Only Spark executors (Pods with this label) will run on Fargate
+#         labels:
+#           spark/component: executor
+
+managedNodeGroups:
+  # Nodegroup used to support tools like Kubedashboard, Cluster Autoscaler...
+  - name: tooling
+    instanceType: t3.medium
+    minSize: 2
+    maxSize: 3
+    desiredCapacity: 3
+    volumeSize: 20
+    labels:
+      noderole: tooling
+    tags:
+      k8s.io/cluster-autoscaler/node-template/label/noderole: tooling
+      k8s.io/cluster-autoscaler/experiments: owned
+      k8s.io/cluster-autoscaler/enabled: "true"
+    iam:
+      withAddonPolicies:
+        ebs: true
+        fsx: true
+        efs: true
+        autoScaler: true
+        cloudWatch: true
+      attachPolicyARNs:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly

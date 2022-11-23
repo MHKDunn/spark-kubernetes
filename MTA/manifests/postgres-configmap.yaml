@@ -1,0 +1,14 @@
+# Create ConfigMap postgres-config for the postgres app
+# Define default database name, user, and password
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: default
+data:
+  POSTGRES_SERVICE_NAME: postgres.default.svc.cluster.local
+  POSTGRES_SERVICE_PORT: "31653"
+  
+
+  

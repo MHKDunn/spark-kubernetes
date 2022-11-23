@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: default
+  labels:
+    app: postgres
+data:
+  database_setup.sql: |- 
+    select 'create database mta_data;'
+    where not exists(
+      SELECT 1 FROM pg_database where datname = 'mta_data'
+    )\gexec
+
+    select 'create user mta_admin;'
+    where not exists(
+      SELECT 1 FROM pg_user where usename = 'mta_admin'
+    )\gexec
+
+
+    GRANT ALL PRIVILEGES ON DATABASE mta_data TO mta_admin;
+
+    \c mta_data;
+
+    create table if not exists mta_reports (
+      "latitude" numeric,
+      "longitude" numeric,
+      "time_received" varchar,
+      "vehicle_id" integer,
+      "distance_along_trip" numeric,
+      "inferred_direction_id" varchar,
+      "inferred_phase" varchar,
+      "inferred_route_id" varchar,
+      "inferred_trip_id" varchar,
+      "next_scheduled_stop_distance" varchar,
+      "next_scheduled_stop_id" varchar,
+      "report_hour" varchar,
+      "report_date" varchar,
+      PRIMARY KEY (time_received, vehicle_id)
+    );
+
+    create table if not exists file_processing_metrics (
+      "id" serial PRIMARY KEY,
+      "run_date" timestamp,
+      "file_name" varchar,
+      "metric" varchar,
+      "value" varchar
+    );
+
+    create index if not exists IX_file_processing_metrics_run_date on file_processing_metrics ("run_date")
+  
+  init_database.sh: |-
+    apk update
+    apk install nano
+    sleep 30
+    psql -U postgres -c "\i /opt/database_setup.sql"
+
+---
+apiVersion: apps/v1
+kind: Deployment # Create a deployment
+metadata:
+  name: postgres # Set the name of the deployment
+  namespace: default
+spec:
+  replicas: 1 # Set deployment replicas
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:14-alpine # Docker image postgres:10.1 #
+          imagePullPolicy: "Always"
+          lifecycle:
+            postStart:
+              exec:
+                command: ["/bin/bash", "-c", /opt/init_database.sh]
+          ports:
+            - containerPort: 5432 # Exposing the container port 5432 for PostgreSQL client connections.
+          envFrom:
+            - configMapRef:
+                name: postgres-config # Using the ConfigMap postgres-config
+            - secretRef:
+                name: mysecret
+          volumeMounts:
+            - name: postgredb
+              mountPath: /var/lib/postgresql/data 
+            - name: shell
+              mountPath: /opt/init_database.sh
+              subPath: init_database.sh
+            - name: sql
+              mountPath: /opt/database_setup.sql
+              subPath: database_setup.sql
+      volumes:
+        - name: postgredb
+          persistentVolumeClaim:
+            claimName: postgres-pv-claim
+        - name: shell
+          configMap:
+            name: postgres-config
+            defaultMode: 493 #0755 is octal equivilent
+        - name: sql
+          configMap:
+            name: postgres-config
+            

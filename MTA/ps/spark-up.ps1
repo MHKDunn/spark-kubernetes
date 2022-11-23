@@ -1,0 +1,1 @@
+kubectl apply -f ./build/spark.yml

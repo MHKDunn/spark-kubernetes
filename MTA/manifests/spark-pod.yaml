@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: spark-pod
+  namespace: default
+  labels:
+    app: spark-pod
+spec:
+  containers:
+    - name: spark-container
+      image: mattdunn022/spark-kubernetes:latest #heleonu/spark-py-kube:1.1
+      imagePullPolicy: Always #"IfNotPresent"
+      command: ["bash", "-c", "while true; do echo 1; sleep 1; done"]
+      ports:
+        - containerPort: 7077
+        - containerPort: 8080
+      envFrom:
+        - secretRef:
+            name: mysecret
